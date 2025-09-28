@@ -1,0 +1,127 @@
+// 修复命名空间问题后的状态机使用示例
+
+#include "bitmap_emoji_display.h"
+#include "animation_state_machine.h"
+
+using namespace bitmap_emoji;
+using namespace animation_state;
+
+void FixedStateMachineExample(esp_lcd_panel_handle_t panel, esp_lcd_panel_io_handle_t panel_io) {
+    // 1. 创建BitmapEmojiDisplay实例（自动包含状态机）
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 2. 获取状态机实例
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 3. 使用状态机进行状态转移（自动播放对应动画）
+    ESP_LOGI("EXAMPLE", "Current state: %s", state_machine->GetCurrentStateName().c_str());
+    
+    // 从SYSTEM状态转移到IDLE状态（自动播放particle动画）
+    TransitionResult result = state_machine->TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - particle animation playing");
+    }
+    
+    // 从IDLE状态转移到LISTENING状态（自动播放line动画）
+    result = state_machine->TransitionTo(SystemState::LISTENING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to LISTENING - line animation playing");
+    }
+    
+    // 从LISTENING状态转移到SPEAKING状态（自动播放lotus动画）
+    result = state_machine->TransitionTo(SystemState::SPEAKING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to SPEAKING - lotus animation playing");
+    }
+    
+    // 从SPEAKING状态转移到IDLE状态（自动播放particle动画）
+    result = state_machine->TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - particle animation playing");
+    }
+    
+    // 4. 测试重置功能
+    state_machine->Reset();  // 会触发状态转移，播放circul动画
+    ESP_LOGI("EXAMPLE", "State machine reset, current state: %s", 
+             state_machine->GetCurrentStateName().c_str());
+}
+
+// 修复的问题说明：
+//
+// 1. 命名空间问题：
+//    - 原问题：前向声明在animation_state命名空间中，但实际类型在bitmap_emoji命名空间
+//    - 修复：正确使用命名空间前缀 bitmap_emoji::BitmapEmojiDisplay
+//
+// 2. 前向声明修复：
+//    namespace bitmap_emoji {
+//        class BitmapEmojiDisplay;
+//    }
+//
+// 3. 方法签名修复：
+//    void SetAnimationDisplay(bitmap_emoji::BitmapEmojiDisplay* display);
+//
+// 4. 成员变量修复：
+//    bitmap_emoji::BitmapEmojiDisplay* animation_display_;
+
+// 更新的状态与动画映射：
+//
+// SYSTEM状态 -> circul动画 (23帧，150ms每帧)
+// IDLE状态 -> particle动画 (粒子效果)
+// LISTENING状态 -> line动画 (线条效果)
+// SPEAKING状态 -> lotus动画 (27帧，200ms每帧)
+
+// 状态转移规则更新：
+//
+// 1. 移除了状态转移限制，现在任何状态都可以转移到任何其他状态
+// 2. 移除了"不能转移到当前状态"的限制
+// 3. Reset()方法现在会触发状态转移，播放对应动画
+
+// 在板级代码中的使用示例：
+void BoardIntegrationExample() {
+    // 假设已经有了panel和panel_io
+    esp_lcd_panel_handle_t panel = GetPanelHandle();
+    esp_lcd_panel_io_handle_t panel_io = GetPanelIOHandle();
+    
+    // 创建显示模块（自动包含状态机）
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 获取状态机
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 系统启动 - 播放circul动画
+    state_machine->TransitionTo(SystemState::SYSTEM);
+    
+    // 进入空闲状态 - 播放particle动画
+    state_machine->TransitionTo(SystemState::IDLE);
+    
+    // 用户开始说话，进入监听状态 - 播放line动画
+    state_machine->TransitionTo(SystemState::LISTENING);
+    
+    // 系统回复，进入说话状态 - 播放lotus动画
+    state_machine->TransitionTo(SystemState::SPEAKING);
+    
+    // 回复完成，回到空闲状态 - 播放particle动画
+    state_machine->TransitionTo(SystemState::IDLE);
+    
+    // 系统重置 - 播放circul动画
+    state_machine->Reset();
+}
+
+// 架构总结：
+//
+// 1. 命名空间正确分离：
+//    - animation_state::AnimationStateMachine
+//    - bitmap_emoji::BitmapEmojiDisplay
+//
+// 2. 引用关系：
+//    - BitmapEmojiDisplay 包含 AnimationStateMachine
+//    - AnimationStateMachine 引用 BitmapEmojiDisplay
+//
+// 3. 生命周期管理：
+//    - 由 BitmapEmojiDisplay 统一管理
+//    - 智能指针自动清理
+//
+// 4. 状态转移：
+//    - 无限制的状态转移
+//    - 自动播放对应动画
+//    - 支持重置功能

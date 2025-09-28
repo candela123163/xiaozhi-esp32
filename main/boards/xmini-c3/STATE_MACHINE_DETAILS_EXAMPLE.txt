@@ -1,0 +1,112 @@
+// 状态机细节完善示例 - 进入和离开状态回调
+
+#include "animation_state_machine.h"
+
+using namespace animation_state;
+
+void StateMachineDetailsExample() {
+    // 1. 创建状态机实例
+    AnimationStateMachine state_machine;
+    
+    // 2. 注册进入状态回调函数
+    state_machine.RegisterEnterStateCallback(SystemState::SYSTEM, []() {
+        ESP_LOGI("EXAMPLE", "Entering SYSTEM state - initializing system");
+        // 系统初始化逻辑
+    });
+    
+    state_machine.RegisterEnterStateCallback(SystemState::IDLE, []() {
+        ESP_LOGI("EXAMPLE", "Entering IDLE state - starting idle animation");
+        // 开始播放空闲动画
+    });
+    
+    state_machine.RegisterEnterStateCallback(SystemState::LISTENING, []() {
+        ESP_LOGI("EXAMPLE", "Entering LISTENING state - starting listening animation");
+        // 开始播放监听动画
+    });
+    
+    state_machine.RegisterEnterStateCallback(SystemState::SPEAKING, []() {
+        ESP_LOGI("EXAMPLE", "Entering SPEAKING state - starting speaking animation");
+        // 开始播放说话动画
+    });
+    
+    // 3. 注册离开状态回调函数（可以为空）
+    state_machine.RegisterExitStateCallback(SystemState::SYSTEM, []() {
+        ESP_LOGI("EXAMPLE", "Exiting SYSTEM state - system initialization complete");
+        // 系统初始化完成清理
+    });
+    
+    state_machine.RegisterExitStateCallback(SystemState::IDLE, []() {
+        ESP_LOGI("EXAMPLE", "Exiting IDLE state - stopping idle animation");
+        // 停止空闲动画
+    });
+    
+    state_machine.RegisterExitStateCallback(SystemState::LISTENING, []() {
+        ESP_LOGI("EXAMPLE", "Exiting LISTENING state - stopping listening animation");
+        // 停止监听动画
+    });
+    
+    state_machine.RegisterExitStateCallback(SystemState::SPEAKING, []() {
+        ESP_LOGI("EXAMPLE", "Exiting SPEAKING state - stopping speaking animation");
+        // 停止说话动画
+    });
+    
+    // 4. 演示状态转移流程
+    ESP_LOGI("EXAMPLE", "=== State Transition Demo ===");
+    
+    // 初始状态：SYSTEM
+    ESP_LOGI("EXAMPLE", "Current state: %s", state_machine.GetCurrentStateName().c_str());
+    
+    // SYSTEM -> IDLE
+    ESP_LOGI("EXAMPLE", "--- Transitioning to IDLE ---");
+    TransitionResult result = state_machine.TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE");
+    }
+    
+    // IDLE -> LISTENING
+    ESP_LOGI("EXAMPLE", "--- Transitioning to LISTENING ---");
+    result = state_machine.TransitionTo(SystemState::LISTENING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to LISTENING");
+    }
+    
+    // LISTENING -> SPEAKING
+    ESP_LOGI("EXAMPLE", "--- Transitioning to SPEAKING ---");
+    result = state_machine.TransitionTo(SystemState::SPEAKING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to SPEAKING");
+    }
+    
+    // SPEAKING -> IDLE
+    ESP_LOGI("EXAMPLE", "--- Transitioning to IDLE ---");
+    result = state_machine.TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE");
+    }
+}
+
+// 回调函数执行顺序说明：
+//
+// 状态转移：A -> B
+// 1. 执行 A 的离开回调 (exit callback)
+// 2. 更新当前状态为 B
+// 3. 执行 B 的进入回调 (enter callback)
+// 4. 执行 B 的兼容性回调 (如果存在)
+//
+// 示例：IDLE -> LISTENING
+// 1. 执行 IDLE 的离开回调：停止空闲动画
+// 2. 当前状态更新为 LISTENING
+// 3. 执行 LISTENING 的进入回调：开始监听动画
+// 4. 执行 LISTENING 的兼容性回调（如果注册了）
+//
+// 优势：
+// - 可以精确控制动画的开始和停止
+// - 支持状态转移时的清理工作
+// - 回调函数可以为空，不会影响状态转移
+// - 保持向后兼容性
+
+// 使用场景：
+// - 进入状态：开始播放对应动画
+// - 离开状态：停止当前动画、清理资源
+// - 状态转移：平滑的动画切换
+// - 资源管理：确保动画资源正确释放

@@ -1,0 +1,178 @@
+// PlayAnimation接口使用示例
+
+#include "bitmap_emoji_display.h"
+#include "animation_state_machine.h"
+
+using namespace bitmap_emoji;
+using namespace animation_state;
+
+void PlayAnimationInterfaceExample(esp_lcd_panel_handle_t panel, esp_lcd_panel_io_handle_t panel_io) {
+    // 1. 创建BitmapEmojiDisplay实例
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 2. 直接使用PlayAnimation接口播放动画
+    ESP_LOGI("EXAMPLE", "=== Direct Animation Playback ===");
+    
+    // 播放circul动画
+    bool result = display.PlayAnimation("circul");
+    if (result) {
+        ESP_LOGI("EXAMPLE", "Successfully started circul animation");
+    } else {
+        ESP_LOGE("EXAMPLE", "Failed to start circul animation");
+    }
+    
+    // 等待一段时间
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    // 播放particle动画
+    result = display.PlayAnimation("particle");
+    if (result) {
+        ESP_LOGI("EXAMPLE", "Successfully started particle animation");
+    }
+    
+    // 等待一段时间
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    // 播放line动画
+    result = display.PlayAnimation("line");
+    if (result) {
+        ESP_LOGI("EXAMPLE", "Successfully started line animation");
+    }
+    
+    // 等待一段时间
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    // 播放lotus动画
+    result = display.PlayAnimation("lotus");
+    if (result) {
+        ESP_LOGI("EXAMPLE", "Successfully started lotus animation");
+    }
+    
+    // 3. 测试无效的动画名称
+    ESP_LOGI("EXAMPLE", "=== Testing Invalid Animation Names ===");
+    
+    result = display.PlayAnimation("nonexistent");
+    if (!result) {
+        ESP_LOGI("EXAMPLE", "Correctly rejected nonexistent animation");
+    }
+    
+    result = display.PlayAnimation(nullptr);
+    if (!result) {
+        ESP_LOGI("EXAMPLE", "Correctly rejected null animation name");
+    }
+    
+    // 4. 结合状态机使用
+    ESP_LOGI("EXAMPLE", "=== Using with State Machine ===");
+    
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 状态转移会自动调用PlayAnimation
+    state_machine->TransitionTo(SystemState::SYSTEM);   // 播放circul动画
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    state_machine->TransitionTo(SystemState::IDLE);     // 播放particle动画
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    state_machine->TransitionTo(SystemState::LISTENING); // 播放line动画
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    state_machine->TransitionTo(SystemState::SPEAKING);  // 播放lotus动画
+    vTaskDelay(pdMS_TO_TICKS(2000));
+}
+
+// PlayAnimation接口说明：
+//
+// 1. 接口签名：
+//    bool PlayAnimation(const char* animation_name);
+//
+// 2. 功能：
+//    - 根据动画名称在animation_map_中查找对应的动画
+//    - 如果找到，则播放该动画
+//    - 返回true表示成功，false表示失败
+//
+// 3. 参数验证：
+//    - 检查player_是否已初始化
+//    - 检查animation_name是否为null
+//    - 检查动画是否存在于animation_map_中
+//
+// 4. 错误处理：
+//    - 播放器未初始化：返回false，记录错误日志
+//    - 动画名称为null：返回false，记录错误日志
+//    - 动画不存在：返回false，记录警告日志
+//    - 播放成功：返回true，记录信息日志
+//
+// 5. 可用的动画名称：
+//    - "circul": 圆形动画（23帧，150ms每帧）
+//    - "particle": 粒子动画
+//    - "line": 线条动画（26帧，200ms每帧）
+//    - "lotus": 莲花动画（27帧，200ms每帧）
+
+// 使用场景示例：
+void UsageScenariosExample() {
+    BitmapEmojiDisplay display(GetPanelHandle(), GetPanelIOHandle());
+    
+    // 场景1：直接播放特定动画
+    display.PlayAnimation("lotus");  // 播放莲花动画
+    
+    // 场景2：根据用户输入播放动画
+    const char* user_input = "circul";
+    if (strcmp(user_input, "circul") == 0) {
+        display.PlayAnimation("circul");
+    } else if (strcmp(user_input, "particle") == 0) {
+        display.PlayAnimation("particle");
+    }
+    
+    // 场景3：循环播放多个动画
+    const char* animations[] = {"circul", "particle", "line", "lotus"};
+    for (int i = 0; i < 4; i++) {
+        display.PlayAnimation(animations[i]);
+        vTaskDelay(pdMS_TO_TICKS(2000));  // 等待2秒
+    }
+    
+    // 场景4：条件播放动画
+    bool is_system_ready = true;
+    if (is_system_ready) {
+        display.PlayAnimation("circul");
+    } else {
+        display.PlayAnimation("particle");
+    }
+}
+
+// 与状态机的集成：
+void StateMachineIntegrationExample() {
+    BitmapEmojiDisplay display(GetPanelHandle(), GetPanelIOHandle());
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 状态机内部使用PlayAnimation接口
+    // SYSTEM状态 -> PlayAnimation("circul")
+    // IDLE状态 -> PlayAnimation("particle")
+    // LISTENING状态 -> PlayAnimation("line")
+    // SPEAKING状态 -> PlayAnimation("lotus")
+    
+    // 状态转移会自动调用对应的PlayAnimation
+    state_machine->TransitionTo(SystemState::SYSTEM);
+    // 内部调用：display.PlayAnimation("circul")
+    
+    state_machine->TransitionTo(SystemState::IDLE);
+    // 内部调用：display.PlayAnimation("particle")
+}
+
+// 扩展性说明：
+//
+// 1. 添加新动画：
+//    - 在SetupEmotionMappings()中添加新的动画定义
+//    - 使用PlayAnimation("new_animation_name")播放
+//
+// 2. 动态动画选择：
+//    - 可以根据条件选择不同的动画
+//    - 可以根据用户偏好选择动画
+//    - 可以根据系统状态选择动画
+//
+// 3. 错误恢复：
+//    - 如果动画播放失败，可以尝试播放默认动画
+//    - 可以记录播放失败的动画名称用于调试
+//
+// 4. 性能优化：
+//    - 动画查找使用unordered_map，时间复杂度O(1)
+//    - 避免重复创建动画对象
+//    - 复用现有的动画播放机制

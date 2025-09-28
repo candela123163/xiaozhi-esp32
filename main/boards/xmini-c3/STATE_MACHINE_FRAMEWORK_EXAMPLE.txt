@@ -1,0 +1,93 @@
+// 状态机框架使用示例
+
+#include "animation_state_machine.h"
+
+using namespace animation_state;
+
+void StateMachineFrameworkExample() {
+    // 1. 创建状态机实例
+    AnimationStateMachine state_machine;
+    
+    // 2. 注册状态回调函数
+    state_machine.RegisterStateCallback(SystemState::SYSTEM, []() {
+        ESP_LOGI("EXAMPLE", "Entering SYSTEM state - playing system animation");
+        // 这里将来会调用播放系统动画的函数
+    });
+    
+    state_machine.RegisterStateCallback(SystemState::IDLE, []() {
+        ESP_LOGI("EXAMPLE", "Entering IDLE state - playing idle animation");
+        // 这里将来会调用播放空闲动画的函数
+    });
+    
+    state_machine.RegisterStateCallback(SystemState::LISTENING, []() {
+        ESP_LOGI("EXAMPLE", "Entering LISTENING state - playing listening animation");
+        // 这里将来会调用播放监听动画的函数
+    });
+    
+    state_machine.RegisterStateCallback(SystemState::SPEAKING, []() {
+        ESP_LOGI("EXAMPLE", "Entering SPEAKING state - playing speaking animation");
+        // 这里将来会调用播放说话动画的函数
+    });
+    
+    // 3. 状态转移示例
+    ESP_LOGI("EXAMPLE", "Current state: %s", state_machine.GetCurrentStateName().c_str());
+    
+    // 从SYSTEM状态转移到IDLE状态
+    TransitionResult result = state_machine.TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE");
+    }
+    
+    // 尝试转移到当前状态（应该失败）
+    result = state_machine.TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::INVALID_TRANSITION) {
+        ESP_LOGI("EXAMPLE", "Correctly rejected transition to current state");
+    }
+    
+    // 从IDLE状态转移到LISTENING状态
+    result = state_machine.TransitionTo(SystemState::LISTENING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to LISTENING");
+    }
+    
+    // 4. 查询可能的状态转移
+    auto possible_transitions = state_machine.GetPossibleTransitions();
+    ESP_LOGI("EXAMPLE", "Possible transitions from %s:", 
+             state_machine.GetCurrentStateName().c_str());
+    for (const auto& state : possible_transitions) {
+        ESP_LOGI("EXAMPLE", "  - %s", state_machine.GetCurrentStateName().c_str());
+    }
+    
+    // 5. 检查是否可以转移到特定状态
+    if (state_machine.CanTransitionTo(SystemState::SPEAKING)) {
+        ESP_LOGI("EXAMPLE", "Can transition to SPEAKING");
+    }
+    
+    // 6. 重置状态机
+    state_machine.Reset();
+    ESP_LOGI("EXAMPLE", "State machine reset, current state: %s", 
+             state_machine.GetCurrentStateName().c_str());
+}
+
+// 状态转移规则说明：
+// 
+// SYSTEM状态：
+//   - 可以转移到：IDLE, LISTENING, SPEAKING
+//   - 用途：系统启动、初始化时的状态
+//
+// IDLE状态：
+//   - 可以转移到：LISTENING, SPEAKING
+//   - 用途：设备空闲、待机时的状态
+//
+// LISTENING状态：
+//   - 可以转移到：IDLE, SPEAKING
+//   - 用途：等待用户语音输入时的状态
+//
+// SPEAKING状态：
+//   - 可以转移到：IDLE, LISTENING
+//   - 用途：播放语音回复时的状态
+//
+// 状态转移限制：
+//   - 不能转移到当前状态
+//   - 必须遵循预定义的状态转移规则
+//   - 状态转移成功后会执行对应的回调函数

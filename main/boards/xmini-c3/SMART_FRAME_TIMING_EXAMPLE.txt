@@ -1,0 +1,48 @@
+// 使用示例：智能帧时长控制
+
+// 示例1：使用fps控制（所有帧以相同速度切换）
+EmojiFrame heartbeat_frames_fps[8] = {
+    EmojiFrame(heartbeat_frame1, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame2, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame3, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame4, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame5, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame6, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame7, 128, 64, 100),  // 默认100ms，会被fps覆盖
+    EmojiFrame(heartbeat_frame8, 128, 64, 100),  // 默认100ms，会被fps覆盖
+};
+EmojiAnimation heartbeat_anim_fps(heartbeat_frames_fps, 8, true, 10); // 10fps，每帧100ms
+
+// 示例2：使用自定义帧时长（每帧可以有不同的显示时间）
+EmojiFrame heartbeat_frames_custom[8] = {
+    EmojiFrame(heartbeat_frame1, 128, 64, 500),  // 静止帧显示500ms
+    EmojiFrame(heartbeat_frame2, 128, 64, 200),  // 开始跳动200ms
+    EmojiFrame(heartbeat_frame3, 128, 64, 150),  // 明显跳动150ms
+    EmojiFrame(heartbeat_frame4, 128, 64, 300),  // 最大跳动300ms
+    EmojiFrame(heartbeat_frame5, 128, 64, 150),  // 保持高强度150ms
+    EmojiFrame(heartbeat_frame6, 128, 64, 200),  // 开始收缩200ms
+    EmojiFrame(heartbeat_frame7, 128, 64, 300),  // 接近静止300ms
+    EmojiFrame(heartbeat_frame8, 128, 64, 500),  // 回到静止500ms
+};
+EmojiAnimation heartbeat_anim_custom(heartbeat_frames_custom, 8, true, 30); // 最大30fps限制
+
+// 示例3：混合使用（部分帧使用自定义时长）
+EmojiFrame heartbeat_frames_mixed[8] = {
+    EmojiFrame(heartbeat_frame1, 128, 64, 100),  // 默认，使用fps
+    EmojiFrame(heartbeat_frame2, 128, 64, 200),  // 自定义200ms
+    EmojiFrame(heartbeat_frame3, 128, 64, 100),  // 默认，使用fps
+    EmojiFrame(heartbeat_frame4, 128, 64, 300),  // 自定义300ms
+    EmojiFrame(heartbeat_frame5, 128, 64, 100),  // 默认，使用fps
+    EmojiFrame(heartbeat_frame6, 128, 64, 200),  // 自定义200ms
+    EmojiFrame(heartbeat_frame7, 128, 64, 100),  // 默认，使用fps
+    EmojiFrame(heartbeat_frame8, 128, 64, 100),  // 默认，使用fps
+};
+EmojiAnimation heartbeat_anim_mixed(heartbeat_frames_mixed, 8, true, 15); // 15fps，混合控制
+
+// 使用方式
+void PlayHeartbeatAnimation() {
+    // 选择其中一种方式
+    player->PlayAnimation(heartbeat_anim_fps);     // 使用fps控制
+    // player->PlayAnimation(heartbeat_anim_custom); // 使用自定义时长
+    // player->PlayAnimation(heartbeat_anim_mixed);   // 混合控制
+}

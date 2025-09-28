@@ -1,6 +1,7 @@
 #include "wifi_board.h"
 #include "codecs/es8311_audio_codec.h"
 #include "display/oled_display.h"
+#include "bitmap_emoji_display.h"
 #include "application.h"
 #include "button.h"
 #include "led/single_led.h"
@@ -109,7 +110,9 @@ private:
         ESP_LOGI(TAG, "Turning display on");
         ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_, true));
 
-        display_ = new OledDisplay(panel_io_, panel_, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
+        // 使用bitmap_emoji_display替代OledDisplay
+        display_ = new bitmap_emoji::BitmapEmojiDisplay(panel_, panel_io_);
+        //display_ = new OledDisplay(panel_io_, panel_, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
     }
 
     void InitializeButtons() {

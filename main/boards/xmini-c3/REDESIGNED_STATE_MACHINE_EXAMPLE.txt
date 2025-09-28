@@ -1,0 +1,117 @@
+// 重新设计后的状态机使用示例
+
+#include "bitmap_emoji_display.h"
+#include "animation_state_machine.h"
+
+using namespace bitmap_emoji;
+using namespace animation_state;
+
+void RedesignedStateMachineExample(esp_lcd_panel_handle_t panel, esp_lcd_panel_io_handle_t panel_io) {
+    // 1. 创建BitmapEmojiDisplay实例（自动包含状态机）
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 2. 获取状态机实例
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 3. 使用状态机进行状态转移（自动播放对应动画）
+    ESP_LOGI("EXAMPLE", "Current state: %s", state_machine->GetCurrentStateName().c_str());
+    
+    // 从SYSTEM状态转移到IDLE状态（自动播放heartbeat动画）
+    TransitionResult result = state_machine->TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - heartbeat animation playing");
+    }
+    
+    // 从IDLE状态转移到LISTENING状态（自动播放thinking动画）
+    result = state_machine->TransitionTo(SystemState::LISTENING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to LISTENING - thinking animation playing");
+    }
+    
+    // 从LISTENING状态转移到SPEAKING状态（自动播放happy动画）
+    result = state_machine->TransitionTo(SystemState::SPEAKING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to SPEAKING - happy animation playing");
+    }
+    
+    // 从SPEAKING状态转移到IDLE状态（自动播放heartbeat动画）
+    result = state_machine->TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - heartbeat animation playing");
+    }
+    
+    // 4. 也可以直接使用BitmapEmojiDisplay的接口
+    display.SetEmotion("heartbeat");  // 直接播放心跳动画
+    display.SetStatus("thinking");    // 直接播放思考动画
+}
+
+// 重新设计后的架构说明：
+//
+// 1. 组合关系：
+//    - BitmapEmojiDisplay 包含 AnimationStateMachine
+//    - AnimationStateMachine 通过指针引用 BitmapEmojiDisplay
+//    - 形成双向引用关系，但生命周期由 BitmapEmojiDisplay 管理
+//
+// 2. 初始化流程：
+//    - 创建 BitmapEmojiDisplay 实例
+//    - 自动创建 AnimationStateMachine 实例
+//    - 自动设置状态机对 BitmapEmojiDisplay 的引用
+//
+// 3. 使用方式：
+//    - 通过 display.GetStateMachine() 获取状态机
+//    - 使用状态机进行状态转移
+//    - 状态转移时自动播放对应动画
+//
+// 4. 优势：
+//    - 状态机不直接持有动画模块，避免循环依赖
+//    - BitmapEmojiDisplay 管理所有组件的生命周期
+//    - 外部接口简洁，只需创建 BitmapEmojiDisplay
+//    - 状态机通过引用访问动画功能，灵活性更高
+//
+// 5. 状态与动画映射：
+//    - SYSTEM状态 -> heartbeat动画
+//    - IDLE状态 -> heartbeat动画
+//    - LISTENING状态 -> thinking动画
+//    - SPEAKING状态 -> happy动画
+
+// 在板级代码中的使用示例：
+void BoardIntegrationExample() {
+    // 假设已经有了panel和panel_io
+    esp_lcd_panel_handle_t panel = GetPanelHandle();
+    esp_lcd_panel_io_handle_t panel_io = GetPanelIOHandle();
+    
+    // 创建显示模块（自动包含状态机）
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 获取状态机
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 系统启动
+    state_machine->TransitionTo(SystemState::SYSTEM);
+    
+    // 进入空闲状态
+    state_machine->TransitionTo(SystemState::IDLE);
+    
+    // 用户开始说话，进入监听状态
+    state_machine->TransitionTo(SystemState::LISTENING);
+    
+    // 系统回复，进入说话状态
+    state_machine->TransitionTo(SystemState::SPEAKING);
+    
+    // 回复完成，回到空闲状态
+    state_machine->TransitionTo(SystemState::IDLE);
+}
+
+// 架构图：
+//
+// BitmapEmojiDisplay
+// ├── BitmapEmojiPlayer (动画播放器)
+// ├── AnimationStateMachine (状态机)
+// │   └── 引用 → BitmapEmojiDisplay (用于播放动画)
+// └── animation_map_ (动画映射表)
+//
+// 外部使用：
+// 1. 创建 BitmapEmojiDisplay
+// 2. 获取状态机实例
+// 3. 使用状态机进行状态转移
+// 4. 状态机自动调用 BitmapEmojiDisplay 播放动画

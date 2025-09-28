@@ -1,0 +1,103 @@
+// 集成动画模块的状态机使用示例
+
+#include "animation_state_machine.h"
+
+using namespace animation_state;
+
+void IntegratedStateMachineExample(esp_lcd_panel_handle_t panel, esp_lcd_panel_io_handle_t panel_io) {
+    // 1. 创建状态机实例（自动初始化动画模块）
+    AnimationStateMachine state_machine(panel, panel_io);
+    
+    // 2. 状态转移示例（自动播放对应动画）
+    ESP_LOGI("EXAMPLE", "Current state: %s", state_machine.GetCurrentStateName().c_str());
+    
+    // 从SYSTEM状态转移到IDLE状态（自动播放heartbeat动画）
+    TransitionResult result = state_machine.TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - heartbeat animation playing");
+    }
+    
+    // 从IDLE状态转移到LISTENING状态（自动播放thinking动画）
+    result = state_machine.TransitionTo(SystemState::LISTENING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to LISTENING - thinking animation playing");
+    }
+    
+    // 从LISTENING状态转移到SPEAKING状态（自动播放happy动画）
+    result = state_machine.TransitionTo(SystemState::SPEAKING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to SPEAKING - happy animation playing");
+    }
+    
+    // 从SPEAKING状态转移到IDLE状态（自动播放heartbeat动画）
+    result = state_machine.TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - heartbeat animation playing");
+    }
+    
+    // 3. 查询功能
+    auto possible_transitions = state_machine.GetPossibleTransitions();
+    ESP_LOGI("EXAMPLE", "Possible transitions from %s:", 
+             state_machine.GetCurrentStateName().c_str());
+    for (const auto& state : possible_transitions) {
+        ESP_LOGI("EXAMPLE", "  - %s", state_machine.GetCurrentStateName().c_str());
+    }
+    
+    // 4. 重置状态机
+    state_machine.Reset();
+    ESP_LOGI("EXAMPLE", "State machine reset, current state: %s", 
+             state_machine.GetCurrentStateName().c_str());
+}
+
+// 状态机与动画模块集成说明：
+//
+// 1. 自动初始化：
+//    - 状态机构造时自动创建BitmapEmojiDisplay实例
+//    - 无需手动管理动画模块的生命周期
+//
+// 2. 自动动画播放：
+//    - 状态转移成功后自动播放对应动画
+//    - 无需手动注册回调函数
+//    - 动画播放逻辑封装在状态机内部
+//
+// 3. 状态与动画映射：
+//    - SYSTEM状态 -> heartbeat动画
+//    - IDLE状态 -> heartbeat动画
+//    - LISTENING状态 -> thinking动画
+//    - SPEAKING状态 -> happy动画
+//
+// 4. 使用优势：
+//    - 简化外部接口，只需调用状态转移
+//    - 状态与动画逻辑统一管理
+//    - 减少外部代码的复杂性
+//    - 确保状态与动画的一致性
+//
+// 5. 扩展性：
+//    - 可以轻松修改状态与动画的映射关系
+//    - 可以添加更多状态和对应的动画
+//    - 动画播放逻辑集中管理，便于维护
+
+// 在板级代码中的使用示例：
+void BoardIntegrationExample() {
+    // 假设已经有了panel和panel_io
+    esp_lcd_panel_handle_t panel = GetPanelHandle();
+    esp_lcd_panel_io_handle_t panel_io = GetPanelIOHandle();
+    
+    // 创建状态机
+    AnimationStateMachine state_machine(panel, panel_io);
+    
+    // 系统启动
+    state_machine.TransitionTo(SystemState::SYSTEM);
+    
+    // 进入空闲状态
+    state_machine.TransitionTo(SystemState::IDLE);
+    
+    // 用户开始说话，进入监听状态
+    state_machine.TransitionTo(SystemState::LISTENING);
+    
+    // 系统回复，进入说话状态
+    state_machine.TransitionTo(SystemState::SPEAKING);
+    
+    // 回复完成，回到空闲状态
+    state_machine.TransitionTo(SystemState::IDLE);
+}

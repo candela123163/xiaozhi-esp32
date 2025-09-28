@@ -1,0 +1,156 @@
+// UNKNOWN状态使用示例
+
+#include "bitmap_emoji_display.h"
+#include "animation_state_machine.h"
+
+using namespace bitmap_emoji;
+using namespace animation_state;
+
+void UnknownStateExample(esp_lcd_panel_handle_t panel, esp_lcd_panel_io_handle_t panel_io) {
+    // 1. 创建BitmapEmojiDisplay实例（自动包含状态机）
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 2. 获取状态机实例
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 3. 初始状态是UNKNOWN
+    ESP_LOGI("EXAMPLE", "Initial state: %s", state_machine->GetCurrentStateName().c_str());
+    
+    // 4. 从UNKNOWN状态可以转移到任何状态
+    ESP_LOGI("EXAMPLE", "--- Transitioning from UNKNOWN to SYSTEM ---");
+    TransitionResult result = state_machine->TransitionTo(SystemState::SYSTEM);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to SYSTEM - circul animation playing");
+    }
+    
+    // 5. 从SYSTEM状态转移到IDLE状态
+    ESP_LOGI("EXAMPLE", "--- Transitioning from SYSTEM to IDLE ---");
+    result = state_machine->TransitionTo(SystemState::IDLE);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to IDLE - particle animation playing");
+    }
+    
+    // 6. 尝试从IDLE状态转移到UNKNOWN状态（应该失败）
+    ESP_LOGI("EXAMPLE", "--- Attempting to transition from IDLE to UNKNOWN ---");
+    result = state_machine->TransitionTo(SystemState::UNKNOWN);
+    if (result == TransitionResult::INVALID_TRANSITION) {
+        ESP_LOGI("EXAMPLE", "Correctly rejected transition to UNKNOWN state");
+    }
+    
+    // 7. 从IDLE状态转移到LISTENING状态
+    ESP_LOGI("EXAMPLE", "--- Transitioning from IDLE to LISTENING ---");
+    result = state_machine->TransitionTo(SystemState::LISTENING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to LISTENING - line animation playing");
+    }
+    
+    // 8. 从LISTENING状态转移到SPEAKING状态
+    ESP_LOGI("EXAMPLE", "--- Transitioning from LISTENING to SPEAKING ---");
+    result = state_machine->TransitionTo(SystemState::SPEAKING);
+    if (result == TransitionResult::SUCCESS) {
+        ESP_LOGI("EXAMPLE", "Successfully transitioned to SPEAKING - lotus animation playing");
+    }
+    
+    // 9. 查询可能的状态转移
+    auto possible_transitions = state_machine->GetPossibleTransitions();
+    ESP_LOGI("EXAMPLE", "Possible transitions from %s:", 
+             state_machine->GetCurrentStateName().c_str());
+    for (const auto& state : possible_transitions) {
+        ESP_LOGI("EXAMPLE", "  - %s", state_machine->GetCurrentStateName().c_str());
+    }
+    
+    // 10. 重置状态机（会转移到SYSTEM状态）
+    ESP_LOGI("EXAMPLE", "--- Resetting state machine ---");
+    state_machine->Reset();
+    ESP_LOGI("EXAMPLE", "State machine reset, current state: %s", 
+             state_machine->GetCurrentStateName().c_str());
+}
+
+// UNKNOWN状态设计说明：
+//
+// 1. 初始状态：
+//    - 状态机创建时的初始状态是UNKNOWN
+//    - UNKNOWN状态表示系统尚未确定当前应该处于什么状态
+//
+// 2. 状态转移规则：
+//    - UNKNOWN → 任何状态（SYSTEM, IDLE, LISTENING, SPEAKING）
+//    - 任何状态 → 不能转移到UNKNOWN
+//    - 任何状态 → 可以转移到其他任何状态（除了UNKNOWN）
+//
+// 3. 动画处理：
+//    - UNKNOWN状态不播放任何动画
+//    - 其他状态播放对应的动画
+//
+// 4. 使用场景：
+//    - 系统启动时的初始状态
+//    - 状态机重置后的状态
+//    - 错误恢复时的状态
+//
+// 5. 状态转移图：
+//
+//     UNKNOWN
+//        ↓
+//     SYSTEM ←→ IDLE ←→ LISTENING ←→ SPEAKING
+//        ↓       ↓         ↓          ↓
+//      (不能回到UNKNOWN)
+//
+// 6. 优势：
+//    - 明确的初始状态
+//    - 防止意外回到未定义状态
+//    - 提供清晰的状态转移路径
+//    - 便于调试和状态跟踪
+
+// 在板级代码中的使用示例：
+void BoardIntegrationExample() {
+    // 假设已经有了panel和panel_io
+    esp_lcd_panel_handle_t panel = GetPanelHandle();
+    esp_lcd_panel_io_handle_t panel_io = GetPanelIOHandle();
+    
+    // 创建显示模块（自动包含状态机，初始状态为UNKNOWN）
+    BitmapEmojiDisplay display(panel, panel_io);
+    
+    // 获取状态机
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 系统启动 - 从UNKNOWN转移到SYSTEM，播放circul动画
+    state_machine->TransitionTo(SystemState::SYSTEM);
+    
+    // 进入空闲状态 - 播放particle动画
+    state_machine->TransitionTo(SystemState::IDLE);
+    
+    // 用户开始说话，进入监听状态 - 播放line动画
+    state_machine->TransitionTo(SystemState::LISTENING);
+    
+    // 系统回复，进入说话状态 - 播放lotus动画
+    state_machine->TransitionTo(SystemState::SPEAKING);
+    
+    // 回复完成，回到空闲状态 - 播放particle动画
+    state_machine->TransitionTo(SystemState::IDLE);
+    
+    // 系统重置 - 转移到SYSTEM状态，播放circul动画
+    state_machine->Reset();
+}
+
+// 状态转移验证测试：
+void StateTransitionValidationTest() {
+    BitmapEmojiDisplay display(GetPanelHandle(), GetPanelIOHandle());
+    AnimationStateMachine* state_machine = display.GetStateMachine();
+    
+    // 测试UNKNOWN状态的转移
+    assert(state_machine->CanTransitionTo(SystemState::SYSTEM) == true);
+    assert(state_machine->CanTransitionTo(SystemState::IDLE) == true);
+    assert(state_machine->CanTransitionTo(SystemState::LISTENING) == true);
+    assert(state_machine->CanTransitionTo(SystemState::SPEAKING) == true);
+    assert(state_machine->CanTransitionTo(SystemState::UNKNOWN) == false);
+    
+    // 转移到SYSTEM状态
+    state_machine->TransitionTo(SystemState::SYSTEM);
+    
+    // 测试SYSTEM状态的转移
+    assert(state_machine->CanTransitionTo(SystemState::IDLE) == true);
+    assert(state_machine->CanTransitionTo(SystemState::LISTENING) == true);
+    assert(state_machine->CanTransitionTo(SystemState::SPEAKING) == true);
+    assert(state_machine->CanTransitionTo(SystemState::UNKNOWN) == false);
+    
+    ESP_LOGI("TEST", "All state transition validations passed!");
+}

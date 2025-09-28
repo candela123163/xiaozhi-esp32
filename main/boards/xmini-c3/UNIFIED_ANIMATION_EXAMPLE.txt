@@ -1,0 +1,42 @@
+// 统一动画系统使用示例
+
+// 现在所有动画都通过一个统一的映射表管理
+// 不再区分emotion和status，所有动画都可以通过名称访问
+
+void ExampleUsage() {
+    BitmapEmojiDisplay* display = GetDisplayInstance();
+    
+    // 1. 设置表情动画
+    display->SetEmotion("heartbeat");    // 心跳动画
+    display->SetEmotion("happy");        // 开心动画
+    display->SetEmotion("thinking");     // 思考动画
+    
+    // 2. 设置状态动画（现在也使用相同的动画系统）
+    display->SetStatus("heartbeat");     // 状态也可以使用心跳动画
+    display->SetStatus("notification");  // 通知动画
+    
+    // 3. 聊天消息动画
+    display->SetChatMessage("user", "Hello");      // 用户消息 -> thinking动画
+    display->SetChatMessage("assistant", "Hi!");   // 助手消息 -> happy动画
+    
+    // 4. 通知动画
+    display->ShowNotification("New message", 3000); // notification动画
+}
+
+// 动画配置说明：
+// - heartbeat: 心跳动画，使用自定义帧时长，更自然的节奏
+// - happy: 开心动画，复用心跳帧但使用fps控制
+// - thinking: 思考动画，较慢的fps
+// - notification: 通知动画，中等速度
+
+// 添加新动画的方法：
+void AddCustomAnimation() {
+    // 在SetupEmotionMappings()中添加：
+    // EmojiFrame custom_frames[4] = {
+    //     EmojiFrame(custom_frame1, EMOJI_WIDTH, EMOJI_HEIGHT, 200),
+    //     EmojiFrame(custom_frame2, EMOJI_WIDTH, EMOJI_HEIGHT, 200),
+    //     EmojiFrame(custom_frame3, EMOJI_WIDTH, EMOJI_HEIGHT, 200),
+    //     EmojiFrame(custom_frame4, EMOJI_WIDTH, EMOJI_HEIGHT, 200),
+    // };
+    // animation_map_["custom"] = EmojiAnimation(custom_frames, 4, true, 15);
+}
